@@ -1,0 +1,77 @@
+# Import libraries
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.datasets import load_diabetes
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+# Load diabetes dataset
+diabetes = load_diabetes()
+df = pd.DataFrame(diabetes.data, columns=diabetes.feature_names)
+df['target'] = diabetes.target  # Disease progression after 1 year
+
+# 1. Data Exploration
+print("=== Dataset Description ===")
+print(df.describe())
+
+plt.figure(figsize=(12, 8))
+sns.heatmap(df.corr(), annot=True, cmap='coolwarm')
+plt.title('Feature Correlation Matrix')
+plt.savefig('correlation_matrix.png')
+plt.show()
+
+# 2. Data Preparation (Using BMI as primary feature)
+X = df[['bmi']]  # Simple regression (Uncomment next line for multiple)
+# X = df.drop('target', axis=1)  # Multiple regression
+y = df['target']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# 3. Model Training
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# 4. Evaluation
+y_pred = model.predict(X_test)
+
+print("\n=== Model Performance ===")
+print(f"MAE: {mean_absolute_error(y_test, y_pred):.2f}")
+print(f"MSE: {mean_squared_error(y_test, y_pred):.2f}")
+print(f"RMSE: {np.sqrt(mean_squared_error(y_test, y_pred)):.2f}")
+print(f"R²: {r2_score(y_test, y_pred):.2f}")
+
+print("\n=== Model Coefficients ===")
+if len(model.coef_) == 1:
+    print(f"BMI Coefficient: {model.coef_[0]:.2f}")
+else:
+    for name, coef in zip(X.columns, model.coef_):
+        print(f"{name}: {coef:.2f}")
+print(f"Intercept: {model.intercept_:.2f}")
+
+# 5. Visualization
+plt.figure(figsize=(12, 6))
+
+# Regression Plot
+plt.subplot(1, 2, 1)
+sns.regplot(x=X_test['bmi'], y=y_test, line_kws={'color': 'red'})
+plt.title('BMI vs Disease Progression')
+plt.xlabel('Body Mass Index (Standardized)')
+plt.ylabel('Disease Progression')
+
+# Residual Plot
+plt.subplot(1, 2, 2)
+residuals = y_test - y_pred
+sns.scatterplot(x=y_pred, y=residuals)
+plt.axhline(y=0, color='r', linestyle='--')
+plt.title('Residual Analysis')
+plt.xlabel('Predicted Values')
+plt.ylabel('Residuals')
+
+plt.tight_layout()
+plt.savefig('regression_analysis.png')
+plt.show()
